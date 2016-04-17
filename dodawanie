@@ -1,0 +1,155 @@
+.data
+
+STDIN=0
+STDOUT=1
+SYSREAD=0
+SYSWRITE=1
+KONWERTER = 0X30
+KONIEC = 0x3F
+tekst: .ascii "To nie liczba!\n"
+tekst_len = .-tekst
+MNOZNIK = 10
+
+.bss
+.comm liczba1, 100
+.comm liczba2, 100
+.comm suma, 200
+
+.text
+.global _start
+
+_start:
+#pobranie liczby
+mov $SYSREAD, %rax
+mov $STDIN, %rdi
+mov $liczba1, %rsi
+mov $100, %rdx
+syscall
+
+#odczyt z ASCII do liczby w rejestrze
+mov %rax, %rdi
+sub $2, %rdi
+mov $1, %rsi
+mov $0, %r8
+jmp petla
+
+petla:
+cmp $0,%rdi
+jl wczytanie_l2
+mov $0, %rax
+mov liczba1(, %rdi,1), %al
+sub $KONWERTER,%al
+
+imul %rsi,%rax
+add %rax,%r8
+
+mov %rsi, %rax
+mov $10, %rbx
+mul %rbx
+mov %rax, %rsi
+
+dec %rdi
+jmp petla
+
+#pobieranie 2 liczby
+wczytanie_l2:
+mov $SYSREAD, %rax
+mov $STDIN, %rdi
+mov $liczba2, %rsi
+mov $100, %rdx
+syscall
+
+#odczyt z ASCII do liczby w rejestrze
+
+mov %rax, %rdi
+sub $2, %rdi
+mov $1, %rsi
+mov $0, %r9
+jmp petla_liczba2
+
+petla_liczba2:
+cmp $0,%rdi
+jl dodawanie
+mov $0, %rax
+mov liczba2(, %rdi,1), %al
+sub $KONWERTER,%al
+
+imul %rsi,%rax
+add %rax,%r9
+
+mov %rsi, %rax
+mov $10, %rbx
+mul %rbx
+mov %rax, %rsi
+
+dec %rdi
+jmp petla_liczba2
+
+dodawanie:
+add %r9,%r8
+jmp przed_petla2
+#Z liczby w rejestrze do ASCII
+przed_petla2:
+mov %r8, %rax #kopiowanie zdekodowanej liczby do rax
+mov $0, %rcx
+mov $MNOZNIK, %rbx
+jmp petla2
+
+petla2:
+imul %r9, %r8
+mov $0, %rdx
+div %rbx #dzielenie rax przez rbx i reszta do rdx
+
+add $KONWERTER, %rdx
+#zapis w odwrotnej kolejnosci
+mov %dl, liczba2(,%rcx,1)
+inc %rcx
+cmp $0, %rax
+jne petla2
+jmp przed_petla3
+
+
+#odwrocenie
+
+przed_petla3:
+mov $0, %rdi
+mov %rcx, %rsi
+dec %rsi
+jmp petla3
+
+petla3:
+mov liczba2(,%rsi,1), %rax
+mov %rax, suma(,%rdi,1)
+
+inc %rdi
+dec %rsi
+cmp %rcx, %rdi
+jle petla3
+jmp wyswietl
+
+
+
+
+#wysietlanie danyc
+wyswietl:
+
+mov $SYSWRITE, %rax
+mov $STDOUT, %rdi
+mov $suma, %rsi
+mov %rcx, %rdx
+syscall
+
+mov $60, %rax
+mov $0, %rdi
+syscall
+
+
+
+
+
+
+
+
+
+
+
